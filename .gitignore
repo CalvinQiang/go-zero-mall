@@ -1,0 +1,11 @@
+/.idea/*
+.gitosc
+/vendor/
+*log
+test.go
+/log/
+go.sum
+config.yaml
+conf
+tmp
+.DS_Store
