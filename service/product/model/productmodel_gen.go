@@ -31,6 +31,7 @@ type (
 		FindOne(ctx context.Context, id int64) (*Product, error)
 		Update(ctx context.Context, newData *Product) error
 		Delete(ctx context.Context, id int64) error
+		TxAdjustStock(tx *sql.Tx, id int64, delta int) (sql.Result, error)
 	}
 
 	defaultProductModel struct {
@@ -55,6 +56,14 @@ func newProductModel(conn sqlx.SqlConn, c cache.CacheConf) *defaultProductModel 
 		CachedConn: sqlc.NewConn(conn, c),
 		table:      "`product`",
 	}
+}
+
+func (m *defaultProductModel) TxAdjustStock(tx *sql.Tx, id int64, delta int) (sql.Result, error) {
+	productIdKey := fmt.Sprintf("%s%v", cacheProductIdPrefix, id)
+	return m.Exec(func(conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("update %s set stock=stock+? where stock >= -? and id=?", m.table)
+		return tx.Exec(query, delta, delta, id)
+	}, productIdKey)
 }
 
 func (m *defaultProductModel) Delete(ctx context.Context, id int64) error {
